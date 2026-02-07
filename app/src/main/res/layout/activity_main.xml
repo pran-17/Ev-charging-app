@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:gravity="center_horizontal">
+
+        <!-- IMAGE (EV STATUS) -->
+        <ImageView
+            android:id="@+id/imgEV"
+            android:layout_width="220dp"
+            android:layout_height="140dp"
+            android:src="@drawable/ev_ok"
+            android:layout_marginBottom="16dp"
+            android:scaleType="fitCenter" />
+
+        <!-- VEHICLE TYPE -->
+        <Spinner
+            android:id="@+id/spVehicle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp" />
+
+        <!-- BATTERY % -->
+        <EditText
+            android:id="@+id/etBattery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Battery Percentage (%)"
+            android:inputType="number"
+            android:maxLength="3"
+            android:layout_marginBottom="8dp" />
+
+        <!-- DISTANCE -->
+        <EditText
+            android:id="@+id/etDistance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Battery Capacity (59/79 kwh)"
+            android:inputType="number"
+            android:layout_marginBottom="12dp" />
+
+        <!-- SOURCE -->
+        <EditText
+            android:id="@+id/etSource"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Current Location"
+            android:layout_marginBottom="8dp" />
+
+        <!-- DESTINATION -->
+        <EditText
+            android:id="@+id/etDestination"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Destination"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Drive Mode"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"/>
+
+        <Spinner
+            android:id="@+id/spDriveMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+
+        <!-- CHECK TRIP -->
+        <Button
+            android:id="@+id/btnCheck"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Check Trip" />
+
+        <!-- RESULT -->
+        <TextView
+            android:id="@+id/tvResult"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- MAP -->
+        <Button
+            android:id="@+id/btnMap"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Show Map with Charging Stations"
+            android:layout_marginBottom="10dp" />
+
+        <!-- ✅ TRIP HISTORY -->
+        <Button
+            android:id="@+id/btnHistory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Trip History" />
+
+    </LinearLayout>
+</ScrollView>

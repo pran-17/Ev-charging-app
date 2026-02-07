@@ -1,0 +1,8 @@
+<objectAnimator
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:propertyName="backgroundTint"
+    android:valueFrom="#7E57C2"
+    android:valueTo="#FF4081"
+    android:duration="1200"
+    android:repeatMode="reverse"
+    android:repeatCount="infinite"/>
