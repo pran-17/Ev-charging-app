@@ -1,5 +1,6 @@
 package com.gfg.evapp;
 
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
@@ -34,10 +35,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     int maxRangeKm;
     Polyline activeRoute;
 
+    // 🚗 Drive mode
+    String driveMode = "Normal";
+    int driveSpeed = 60; // km/h
+
+    // ⚡ Charging cost
+    final int CHARGER_POWER_KW = 7;
+    final int COST_PER_UNIT = 8; // ₹ per kWh
+
     Set<String> addedPlaces = new HashSet<>();
 
     DBHelper db;
-    String userEmail = "unknown";
+    String userEmail;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,12 +55,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         db = new DBHelper(this);
 
+        // ✅ GET LOGGED-IN USER EMAIL
+        SharedPreferences sp = getSharedPreferences("EVAPP", MODE_PRIVATE);
+        userEmail = sp.getString("userEmail", "unknown");
+
+        // 🔋 Battery
         try {
             batteryPercentage = Integer.parseInt(
                     getIntent().getStringExtra("battery")
             );
-        } catch (Exception e) {
-            batteryPercentage = 50;
+        } catch (Exception ignored) {}
+
+        // 🚦 Drive mode
+        driveMode = getIntent().getStringExtra("driveMode");
+        if (driveMode == null) driveMode = "Normal";
+
+        switch (driveMode) {
+            case "Eco":
+                driveSpeed = 40;
+                break;
+            case "Sport":
+                driveSpeed = 80;
+                break;
+            case "Race":
+                driveSpeed = 100;
+                break;
+            default:
+                driveSpeed = 60;
         }
 
         SupportMapFragment mapFragment =
@@ -83,11 +113,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
-        // ✅ GLOBAL STATE
         sourceLocation = source;
         maxRangeKm = (batteryPercentage * FULL_RANGE) / 100;
 
-        // Source & destination
+        // Markers
         mMap.addMarker(new MarkerOptions().position(source).title("Source"));
         mMap.addMarker(new MarkerOptions().position(destination).title("Destination"));
 
@@ -99,24 +128,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(source, 10));
 
-        // STEP 4: manual stations (backup)
+        // Manual chargers
         addManualChargingStations(source);
 
-        // STEP 3: API stations along route corridor
-        List<LatLng> corridor = getRoutePoints(source, destination);
-        for (LatLng p : corridor) {
+        // API chargers along route corridor
+        for (LatLng p : getRoutePoints(source, destination)) {
             fetchChargingStationsHybrid(p);
         }
 
-        // STEP 5: marker click
         setupMarkerClick();
     }
 
-    // 🔹 ROUTE CORRIDOR
+    // 🔹 Route corridor points
     private List<LatLng> getRoutePoints(LatLng start, LatLng end) {
         List<LatLng> points = new ArrayList<>();
         int steps = 6;
-
         for (int i = 0; i <= steps; i++) {
             double lat = start.latitude + (end.latitude - start.latitude) * i / steps;
             double lng = start.longitude + (end.longitude - start.longitude) * i / steps;
@@ -125,7 +151,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return points;
     }
 
-    // 🔹 GEOCODER
+    // 🔹 Geocoder
     private LatLng getLocationFromName(String name) {
         try {
             Geocoder g = new Geocoder(this, Locale.getDefault());
@@ -137,7 +163,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return null;
     }
 
-    // 🔹 STEP 3: API STATIONS
+    // 🔹 API chargers
     private void fetchChargingStationsHybrid(LatLng searchPoint) {
 
         new Thread(() -> {
@@ -149,8 +175,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 "&keyword=ev%20charging%20station" +
                                 "&key=" + getString(R.string.google_maps_key);
 
-                URL url = new URL(urlStr);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                HttpURLConnection conn =
+                        (HttpURLConnection) new URL(urlStr).openConnection();
                 conn.connect();
 
                 BufferedReader br = new BufferedReader(
@@ -194,11 +220,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             float km = dist[0] / 1000;
                             boolean reachable = km <= maxRangeKm;
 
-                            String name = place.optString("name", "Charging Station");
-
                             mMap.addMarker(new MarkerOptions()
                                     .position(charger)
-                                    .title(name)
+                                    .title(place.optString("name", "Charging Station"))
                                     .snippet(String.format("%.1f km • %s",
                                             km,
                                             reachable ? "Reachable ✅" : "Not Reachable ❌"))
@@ -207,7 +231,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                                     BitmapDescriptorFactory.HUE_GREEN :
                                                     BitmapDescriptorFactory.HUE_RED
                                     )));
-
                         } catch (Exception ignored) {}
                     }
                 });
@@ -218,9 +241,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }).start();
     }
 
-    // 🔹 STEP 4: MANUAL STATIONS
+    // 🔹 Manual chargers
     private void addManualChargingStations(LatLng source) {
-
         List<LatLng> manual = Arrays.asList(
                 new LatLng(source.latitude + 0.05, source.longitude + 0.04),
                 new LatLng(source.latitude - 0.04, source.longitude + 0.03),
@@ -238,7 +260,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    // 🔹 STEP 5: CLICK → POPUP → ROUTE + SAVE
+    // 🔹 Marker click → ETA + COST + SAVE
     private void setupMarkerClick() {
 
         mMap.setOnMarkerClickListener(marker -> {
@@ -250,9 +272,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             LatLng charger = marker.getPosition();
 
+            float[] dist = new float[1];
+            Location.distanceBetween(
+                    sourceLocation.latitude,
+                    sourceLocation.longitude,
+                    charger.latitude,
+                    charger.longitude,
+                    dist
+            );
+
+            float km = dist[0] / 1000;
+            boolean reachable = km <= maxRangeKm;
+
+            // ✅ ETA
+            double timeHours = km / driveSpeed;
+            int hrs = (int) timeHours;
+            int mins = (int) ((timeHours - hrs) * 60);
+            String eta = hrs + " hrs " + mins + " mins";
+
+            // ✅ COST
+            int costPerHour = CHARGER_POWER_KW * COST_PER_UNIT;
+
+            String msg =
+                    "Distance: " + String.format("%.1f", km) + " km\n" +
+                            "Status: " + (reachable ? "Reachable ✅" : "Not Reachable ❌") + "\n" +
+                            "Drive Mode: " + driveMode + "\n" +
+                            "ETA: " + eta + "\n" +
+                            "Charging Cost (1 hr): ₹" + costPerHour;
+
             new AlertDialog.Builder(this)
                     .setTitle(marker.getTitle())
-                    .setMessage(marker.getSnippet())
+                    .setMessage(msg)
                     .setPositiveButton("Show Route", (d, w) -> {
 
                         if (activeRoute != null) activeRoute.remove();
@@ -262,29 +312,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 .width(8)
                                 .color(Color.MAGENTA));
 
-                        // ETA calculation
-                        float[] dist = new float[1];
-                        Location.distanceBetween(
-                                sourceLocation.latitude,
-                                sourceLocation.longitude,
-                                charger.latitude,
-                                charger.longitude,
-                                dist
-                        );
-
-                        float km = dist[0] / 1000;
-                        double hours = km / 60.0;
-                        String eta = (int) hours + " hrs " +
-                                (int) ((hours - (int) hours) * 60) + " mins";
-
-                        // SAVE TO DB
                         db.insertTrip(
                                 userEmail,
                                 batteryPercentage,
                                 FULL_RANGE,
                                 "Source",
                                 marker.getTitle(),
-                                "Charger Selected",
+                                reachable ? "Charger Reachable" : "Charger Not Reachable",
                                 marker.getTitle(),
                                 eta
                         );

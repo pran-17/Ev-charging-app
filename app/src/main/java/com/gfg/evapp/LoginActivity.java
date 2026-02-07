@@ -1,11 +1,9 @@
 package com.gfg.evapp;
 
-import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
-import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.*;
 
@@ -21,9 +19,6 @@ public class LoginActivity extends AppCompatActivity {
 
     DBHelper db;
 
-    Animation slideUp, slideDown, fadeIn;
-    ObjectAnimator borderPulse;   // 🔥 NEW
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,14 +33,10 @@ public class LoginActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_login);
 
+        // 📦 DATABASE
         db = new DBHelper(this);
 
-        // 🎬 LOAD ANIMATIONS
-        slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
-        slideDown = AnimationUtils.loadAnimation(this, R.anim.slide_down);
-        fadeIn = AnimationUtils.loadAnimation(this, R.anim.fade_in);
-
-        // 🧩 LAYOUTS (BOXES)
+        // 🧩 LAYOUTS
         loginLayout = findViewById(R.id.loginLayout);
         signupLayout = findViewById(R.id.signupLayout);
 
@@ -53,48 +44,37 @@ public class LoginActivity extends AppCompatActivity {
         etLoginEmail = findViewById(R.id.etLoginEmail);
         etLoginPassword = findViewById(R.id.etLoginPassword);
         btnLogin = findViewById(R.id.btnLogin);
+        tvGoSignup = findViewById(R.id.tvGoSignup);
 
         // 📝 SIGNUP VIEWS
         etSignupEmail = findViewById(R.id.etSignupEmail);
         etSignupPassword = findViewById(R.id.etSignupPassword);
         btnSignup = findViewById(R.id.btnSignup);
-
-        tvGoSignup = findViewById(R.id.tvGoSignup);
         tvGoLogin = findViewById(R.id.tvGoLogin);
 
-        // 🎬 INITIAL ENTRY ANIMATION (ONLY BOX)
-        loginLayout.startAnimation(fadeIn);
-        startBorderPulse(loginLayout);
-
-        // 🔁 SWITCH TO SIGNUP
+        // 🔁 GO TO SIGNUP (SLIDE RIGHT)
         tvGoSignup.setOnClickListener(v -> {
-
-            stopBorderPulse();
-
-            loginLayout.startAnimation(slideDown);
+            loginLayout.startAnimation(
+                    AnimationUtils.loadAnimation(this, R.anim.slide_out_left));
             loginLayout.setVisibility(View.GONE);
 
             signupLayout.setVisibility(View.VISIBLE);
-            signupLayout.startAnimation(slideUp);
-
-            startBorderPulse(signupLayout);
+            signupLayout.startAnimation(
+                    AnimationUtils.loadAnimation(this, R.anim.slide_in_right));
         });
 
-        // 🔁 SWITCH TO LOGIN
+        // 🔁 GO TO LOGIN (SLIDE LEFT)
         tvGoLogin.setOnClickListener(v -> {
-
-            stopBorderPulse();
-
-            signupLayout.startAnimation(slideDown);
+            signupLayout.startAnimation(
+                    AnimationUtils.loadAnimation(this, R.anim.slide_out_right));
             signupLayout.setVisibility(View.GONE);
 
             loginLayout.setVisibility(View.VISIBLE);
-            loginLayout.startAnimation(slideUp);
-
-            startBorderPulse(loginLayout);
+            loginLayout.startAnimation(
+                    AnimationUtils.loadAnimation(this, R.anim.slide_in_left));
         });
 
-        // 🔐 LOGIN BUTTON
+        // 🔐 LOGIN BUTTON (EMAIL VALIDATION ADDED)
         btnLogin.setOnClickListener(v -> {
 
             String email = etLoginEmail.getText().toString().trim();
@@ -102,6 +82,13 @@ public class LoginActivity extends AppCompatActivity {
 
             if (email.isEmpty() || pass.isEmpty()) {
                 Toast.makeText(this, "Enter all fields", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // ✅ Gmail validation
+            if (!isValidGmail(email)) {
+                etLoginEmail.setError("Enter valid Gmail (example@gmail.com)");
+                etLoginEmail.requestFocus();
                 return;
             }
 
@@ -123,7 +110,7 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
-        // 📝 SIGNUP BUTTON
+        // 📝 SIGNUP BUTTON (EMAIL VALIDATION ADDED)
         btnSignup.setOnClickListener(v -> {
 
             String email = etSignupEmail.getText().toString().trim();
@@ -134,21 +121,26 @@ public class LoginActivity extends AppCompatActivity {
                 return;
             }
 
+            // ✅ Gmail validation
+            if (!isValidGmail(email)) {
+                etSignupEmail.setError("Enter valid Gmail (example@gmail.com)");
+                etSignupEmail.requestFocus();
+                return;
+            }
+
             if (db.registerUser(email, pass)) {
 
                 Toast.makeText(this,
                         "Registration successful. Please login.",
                         Toast.LENGTH_LONG).show();
 
-                stopBorderPulse();
-
-                signupLayout.startAnimation(slideDown);
+                signupLayout.startAnimation(
+                        AnimationUtils.loadAnimation(this, R.anim.slide_out_right));
                 signupLayout.setVisibility(View.GONE);
 
                 loginLayout.setVisibility(View.VISIBLE);
-                loginLayout.startAnimation(slideUp);
-
-                startBorderPulse(loginLayout);
+                loginLayout.startAnimation(
+                        AnimationUtils.loadAnimation(this, R.anim.slide_in_left));
 
             } else {
                 Toast.makeText(this,
@@ -158,24 +150,8 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    // 🔥 BORDER COLOR PULSE ANIMATION
-    private void startBorderPulse(View target) {
-
-        borderPulse = ObjectAnimator.ofArgb(
-                target,
-                "backgroundTint",
-                0xFF7E57C2,
-                0xFFFF4081
-        );
-        borderPulse.setDuration(1200);
-        borderPulse.setRepeatMode(ObjectAnimator.REVERSE);
-        borderPulse.setRepeatCount(ObjectAnimator.INFINITE);
-        borderPulse.start();
-    }
-
-    private void stopBorderPulse() {
-        if (borderPulse != null) {
-            borderPulse.cancel();
-        }
+    // ✅ STRICT GMAIL VALIDATION METHOD
+    private boolean isValidGmail(String email) {
+        return email.contains("@") && email.endsWith("@gmail.com");
     }
 }
