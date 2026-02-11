@@ -3,10 +3,16 @@ package com.gfg.evapp;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.*;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FieldValue;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -17,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
     Spinner spVehicle, spDriveMode;
 
     DBHelper db;
+    FirebaseFirestore firestore;
 
     int FULL_RANGE = 300;
     int avgSpeed = 60;
@@ -25,7 +32,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 🔐 LOGIN CHECK
         SharedPreferences sp = getSharedPreferences("EVAPP", MODE_PRIVATE);
         if (!sp.getBoolean("isLoggedIn", false)) {
             startActivity(new Intent(this, LoginActivity.class));
@@ -33,13 +39,15 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        String userEmail = sp.getString("userEmail", "unknown");
-
         setContentView(R.layout.activity_main);
 
-        // 🔹 UI INIT
+        String userEmail = sp.getString("userEmail", "unknown");
+
+        firestore = FirebaseFirestore.getInstance();
+        db = new DBHelper(this);
+
         etBattery = findViewById(R.id.etBattery);
-        etDistance = findViewById(R.id.etDistance); // kWh
+        etDistance = findViewById(R.id.etDistance);
         etSource = findViewById(R.id.etSource);
         etDestination = findViewById(R.id.etDestination);
         tvResult = findViewById(R.id.tvResult);
@@ -50,40 +58,16 @@ public class MainActivity extends AppCompatActivity {
         spVehicle = findViewById(R.id.spVehicle);
         spDriveMode = findViewById(R.id.spDriveMode);
 
-        db = new DBHelper(this);
-
-        // 🚗 VEHICLE SPINNER
+        // 🚗 Vehicle Spinner
         String[] vehicles = {"EV Car", "EV Bike", "EV Bus"};
         spVehicle.setAdapter(new ArrayAdapter<>(
                 this, android.R.layout.simple_spinner_dropdown_item, vehicles));
 
-        // 🚦 DRIVE MODE SPINNER
+        // 🚦 Drive Mode Spinner
         String[] driveModes = {"Eco", "Normal", "Sport", "Race"};
         spDriveMode.setAdapter(new ArrayAdapter<>(
                 this, android.R.layout.simple_spinner_dropdown_item, driveModes));
 
-        // 🚗 VEHICLE IMAGE + RANGE
-        spVehicle.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
-
-                String v = parent.getItemAtPosition(pos).toString();
-                if (v.equals("EV Bike")) {
-                    imgEV.setImageResource(R.drawable.ev_bike);
-                    FULL_RANGE = 120;
-                } else if (v.equals("EV Bus")) {
-                    imgEV.setImageResource(R.drawable.ev_bus);
-                    FULL_RANGE = 250;
-                } else {
-                    imgEV.setImageResource(R.drawable.ev_charge);
-                    FULL_RANGE = 300;
-                }
-            }
-
-            @Override public void onNothingSelected(AdapterView<?> parent) {}
-        });
-
-        // 🔹 CHECK TRIP
         btnCheck.setOnClickListener(v -> {
 
             if (etBattery.getText().toString().isEmpty() ||
@@ -98,14 +82,17 @@ public class MainActivity extends AppCompatActivity {
             int batteryPercent = Integer.parseInt(etBattery.getText().toString());
             int batteryCapacity = Integer.parseInt(etDistance.getText().toString());
 
+            if (batteryPercent > 100 || batteryPercent <= 0) {
+                Toast.makeText(this, "Battery % must be between 1-100", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             String vehicle = spVehicle.getSelectedItem().toString();
             String driveMode = spDriveMode.getSelectedItem().toString();
 
-            // ⚡ Efficiency
             int efficiency = vehicle.equals("EV Bike") ? 8 :
                     vehicle.equals("EV Bus") ? 3 : 6;
 
-            // 🚦 SPEED
             switch (driveMode) {
                 case "Eco": avgSpeed = 40; break;
                 case "Sport": avgSpeed = 80; break;
@@ -113,7 +100,6 @@ public class MainActivity extends AppCompatActivity {
                 default: avgSpeed = 60;
             }
 
-            // 🔋 ENERGY
             double usableEnergy = (batteryPercent / 100.0) * batteryCapacity;
 
             if (batteryPercent < 20) usableEnergy *= 0.8;
@@ -122,7 +108,6 @@ public class MainActivity extends AppCompatActivity {
 
             int range = (int) (usableEnergy * efficiency);
 
-            // ⏱ ETA
             double timeHrs = (double) range / avgSpeed;
             int hrs = (int) timeHrs;
             int mins = (int) ((timeHrs - hrs) * 60);
@@ -135,11 +120,10 @@ public class MainActivity extends AppCompatActivity {
                             "\nVehicle: " + vehicle +
                             "\nDrive Mode: " + driveMode +
                             "\nRange: " + range + " km" +
-                            "\nSpeed: " + avgSpeed + " km/h" +
                             "\nETA: " + eta
             );
 
-            // 💾 SAVE TO DB ✅ FIXED
+            // ✅ Save to SQLite
             db.insertTrip(
                     userEmail,
                     batteryPercent,
@@ -150,18 +134,47 @@ public class MainActivity extends AppCompatActivity {
                     "Not Selected",
                     eta
             );
+
+            // 🔥 Save to Firestore
+            Map<String, Object> tripData = new HashMap<>();
+            tripData.put("userEmail", userEmail);
+            tripData.put("vehicle", vehicle);
+            tripData.put("driveMode", driveMode);
+            tripData.put("batteryPercent", batteryPercent);
+            tripData.put("batteryCapacity", batteryCapacity);
+            tripData.put("range", range);
+            tripData.put("eta", eta);
+            tripData.put("source", etSource.getText().toString());
+            tripData.put("destination", etDestination.getText().toString());
+            tripData.put("result", result);
+            tripData.put("timestamp", FieldValue.serverTimestamp());
+
+            firestore.collection("Trips")
+                    .add(tripData)
+                    .addOnSuccessListener(documentReference -> {
+                        Toast.makeText(this,
+                                "Saved to Firestore ☁",
+                                Toast.LENGTH_LONG).show();
+                        Log.d("FIRESTORE_SUCCESS", "Saved with ID: " + documentReference.getId());
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this,
+                                "Firestore Failed!",
+                                Toast.LENGTH_LONG).show();
+                        Log.e("FIRESTORE_ERROR", e.getMessage());
+                    });
+
         });
 
-        // 🗺 MAP
         btnMap.setOnClickListener(v -> {
             Intent i = new Intent(this, MapsActivity.class);
             i.putExtra("source", etSource.getText().toString());
             i.putExtra("destination", etDestination.getText().toString());
             i.putExtra("battery", etBattery.getText().toString());
+            i.putExtra("driveMode", spDriveMode.getSelectedItem().toString());
             startActivity(i);
         });
 
-        // 📜 HISTORY
         btnHistory.setOnClickListener(v ->
                 startActivity(new Intent(this, TripHistoryActivity.class))
         );

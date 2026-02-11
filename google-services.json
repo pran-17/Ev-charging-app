@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "136626184097",
+    "project_id": "evapp-b19cc",
+    "storage_bucket": "evapp-b19cc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:136626184097:android:7b9d25d6da51e6199eb5e0",
+        "android_client_info": {
+          "package_name": "com.gfg.evapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAzbs3inIpfVufMSYoqVu6f3ajiQvwcUdQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
