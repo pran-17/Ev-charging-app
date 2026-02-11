@@ -9,7 +9,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DBHelper extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "EVApp.db";
-    private static final int DB_VERSION = 4; // 🔥 INCREASE VERSION
+    private static final int DB_VERSION = 5; // 🔥 INCREASE VERSION
 
     public DBHelper(Context context) {
         super(context, DB_NAME, null, DB_VERSION);

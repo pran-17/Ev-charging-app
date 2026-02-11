@@ -9,9 +9,9 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.gfg.evapp" />
-                  <option name="mobileSdkAppId" value="1:446109936287:android:3f0f8ea6e0aefc866350aa" />
-                  <option name="projectId" value="evapp-ca9fe" />
-                  <option name="projectNumber" value="446109936287" />
+                  <option name="mobileSdkAppId" value="1:136626184097:android:7b9d25d6da51e6199eb5e0" />
+                  <option name="projectId" value="evapp-b19cc" />
+                  <option name="projectNumber" value="136626184097" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

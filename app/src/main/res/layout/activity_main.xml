@@ -15,7 +15,7 @@
             android:id="@+id/imgEV"
             android:layout_width="220dp"
             android:layout_height="140dp"
-            android:src="@drawable/ev_ok"
+            android:src="@drawable/ev_charge"
             android:layout_marginBottom="16dp"
             android:scaleType="fitCenter" />
 

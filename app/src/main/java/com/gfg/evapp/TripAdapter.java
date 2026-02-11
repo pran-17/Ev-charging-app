@@ -8,10 +8,8 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.recyclerview.widget.LinearLayoutManager;
 
-
-public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder> {
+public class TripAdapter extends RecyclerView.Adapter<TripAdapter.ViewHolder> {
 
     Context context;
     Cursor cursor;
@@ -22,39 +20,46 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder
     }
 
     @Override
-    public TripViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View v = LayoutInflater.from(context)
-                .inflate(R.layout.item_trip, parent, false);
-        return new TripViewHolder(v);
+    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(context)
+                .inflate(android.R.layout.simple_list_item_2, parent, false);
+        return new ViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(TripViewHolder holder, int position) {
+    public void onBindViewHolder(ViewHolder holder, int position) {
+
         if (!cursor.moveToPosition(position)) return;
 
-        holder.tvSource.setText("From: " + cursor.getString(4));
-        holder.tvDestination.setText("To: " + cursor.getString(5));
-        holder.tvResult.setText(cursor.getString(6));
-        holder.tvCharger.setText("Charger: " + cursor.getString(7));
-        holder.tvTime.setText(cursor.getString(8));
+        String source = cursor.getString(
+                cursor.getColumnIndexOrThrow("source"));
+
+        String destination = cursor.getString(
+                cursor.getColumnIndexOrThrow("destination"));
+
+        String result = cursor.getString(
+                cursor.getColumnIndexOrThrow("result"));
+
+        String eta = cursor.getString(
+                cursor.getColumnIndexOrThrow("eta"));
+
+        holder.title.setText(source + " → " + destination);
+        holder.subtitle.setText(result + " | ETA: " + eta);
     }
 
     @Override
     public int getItemCount() {
-        return cursor.getCount();
+        return cursor == null ? 0 : cursor.getCount();
     }
 
-    static class TripViewHolder extends RecyclerView.ViewHolder {
+    static class ViewHolder extends RecyclerView.ViewHolder {
 
-        TextView tvSource, tvDestination, tvResult, tvCharger, tvTime;
+        TextView title, subtitle;
 
-        public TripViewHolder(View itemView) {
+        public ViewHolder(View itemView) {
             super(itemView);
-            tvSource = itemView.findViewById(R.id.tvSource);
-            tvDestination = itemView.findViewById(R.id.tvDestination);
-            tvResult = itemView.findViewById(R.id.tvResult);
-            tvCharger = itemView.findViewById(R.id.tvCharger);
-            tvTime = itemView.findViewById(R.id.tvTime);
+            title = itemView.findViewById(android.R.id.text1);
+            subtitle = itemView.findViewById(android.R.id.text2);
         }
     }
 }

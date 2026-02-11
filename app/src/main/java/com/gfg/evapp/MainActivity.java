@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
         firestore = FirebaseFirestore.getInstance();
         db = new DBHelper(this);
 
+        // 🔹 UI
         etBattery = findViewById(R.id.etBattery);
         etDistance = findViewById(R.id.etDistance);
         etSource = findViewById(R.id.etSource);
@@ -58,16 +59,55 @@ public class MainActivity extends AppCompatActivity {
         spVehicle = findViewById(R.id.spVehicle);
         spDriveMode = findViewById(R.id.spDriveMode);
 
-        // 🚗 Vehicle Spinner
+        // =========================
+        // 🚗 VEHICLE SPINNER
+        // =========================
         String[] vehicles = {"EV Car", "EV Bike", "EV Bus"};
-        spVehicle.setAdapter(new ArrayAdapter<>(
-                this, android.R.layout.simple_spinner_dropdown_item, vehicles));
+        ArrayAdapter<String> vehicleAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_dropdown_item,
+                vehicles
+        );
+        spVehicle.setAdapter(vehicleAdapter);
 
-        // 🚦 Drive Mode Spinner
+        spVehicle.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, android.view.View view, int position, long id) {
+
+                String selectedVehicle = parent.getItemAtPosition(position).toString();
+
+                if (selectedVehicle.equals("EV Bike")) {
+                    imgEV.setImageResource(R.drawable.ev_bike);
+                    FULL_RANGE = 120;
+
+                } else if (selectedVehicle.equals("EV Bus")) {
+                    imgEV.setImageResource(R.drawable.ev_bus);
+                    FULL_RANGE = 250;
+
+                } else {
+                    imgEV.setImageResource(R.drawable.ev_charge);
+                    FULL_RANGE = 300;
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        // =========================
+        // 🚦 DRIVE MODE SPINNER
+        // =========================
         String[] driveModes = {"Eco", "Normal", "Sport", "Race"};
-        spDriveMode.setAdapter(new ArrayAdapter<>(
-                this, android.R.layout.simple_spinner_dropdown_item, driveModes));
+        ArrayAdapter<String> driveAdapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_dropdown_item,
+                driveModes
+        );
+        spDriveMode.setAdapter(driveAdapter);
 
+        // =========================
+        // 🔍 CHECK TRIP BUTTON
+        // =========================
         btnCheck.setOnClickListener(v -> {
 
             if (etBattery.getText().toString().isEmpty() ||
@@ -123,7 +163,9 @@ public class MainActivity extends AppCompatActivity {
                             "\nETA: " + eta
             );
 
-            // ✅ Save to SQLite
+            // =========================
+            // 💾 SAVE TO SQLITE
+            // =========================
             db.insertTrip(
                     userEmail,
                     batteryPercent,
@@ -135,7 +177,9 @@ public class MainActivity extends AppCompatActivity {
                     eta
             );
 
-            // 🔥 Save to Firestore
+            // =========================
+            // ☁ SAVE TO FIRESTORE
+            // =========================
             Map<String, Object> tripData = new HashMap<>();
             tripData.put("userEmail", userEmail);
             tripData.put("vehicle", vehicle);
@@ -155,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(this,
                                 "Saved to Firestore ☁",
                                 Toast.LENGTH_LONG).show();
-                        Log.d("FIRESTORE_SUCCESS", "Saved with ID: " + documentReference.getId());
+                        Log.d("FIRESTORE_SUCCESS", "Saved ID: " + documentReference.getId());
                     })
                     .addOnFailureListener(e -> {
                         Toast.makeText(this,
@@ -163,9 +207,11 @@ public class MainActivity extends AppCompatActivity {
                                 Toast.LENGTH_LONG).show();
                         Log.e("FIRESTORE_ERROR", e.getMessage());
                     });
-
         });
 
+        // =========================
+        // 🗺 MAP BUTTON
+        // =========================
         btnMap.setOnClickListener(v -> {
             Intent i = new Intent(this, MapsActivity.class);
             i.putExtra("source", etSource.getText().toString());
@@ -175,6 +221,9 @@ public class MainActivity extends AppCompatActivity {
             startActivity(i);
         });
 
+        // =========================
+        // 📜 HISTORY BUTTON
+        // =========================
         btnHistory.setOnClickListener(v ->
                 startActivity(new Intent(this, TripHistoryActivity.class))
         );

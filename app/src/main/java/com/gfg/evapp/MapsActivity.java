@@ -261,6 +261,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     // 🔹 Marker click → ETA + COST + SAVE
+    // 🔹 Marker click → ETA + COST + BOOKING
     private void setupMarkerClick() {
 
         mMap.setOnMarkerClickListener(marker -> {
@@ -290,7 +291,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             int mins = (int) ((timeHours - hrs) * 60);
             String eta = hrs + " hrs " + mins + " mins";
 
-            // ✅ COST
+            // ✅ COST (1 hour)
             int costPerHour = CHARGER_POWER_KW * COST_PER_UNIT;
 
             String msg =
@@ -303,6 +304,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             new AlertDialog.Builder(this)
                     .setTitle(marker.getTitle())
                     .setMessage(msg)
+
+                    // 🔥 SHOW ROUTE BUTTON
                     .setPositiveButton("Show Route", (d, w) -> {
 
                         if (activeRoute != null) activeRoute.remove();
@@ -312,25 +315,47 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 .width(8)
                                 .color(Color.MAGENTA));
 
-                        db.insertTrip(
-                                userEmail,
-                                batteryPercentage,
-                                FULL_RANGE,
-                                "Source",
-                                marker.getTitle(),
-                                reachable ? "Charger Reachable" : "Charger Not Reachable",
-                                marker.getTitle(),
-                                eta
-                        );
-
                         Toast.makeText(this,
                                 "Route shown • ETA: " + eta,
                                 Toast.LENGTH_LONG).show();
                     })
+
+                    // 🔥 BOOK BUTTON (NEW STEP)
+                    .setNeutralButton("Book", (d, w) -> {
+
+                        String[] capacities = {"59 kWh", "79 kWh"};
+
+                        new AlertDialog.Builder(this)
+                                .setTitle("Select Battery Capacity")
+                                .setItems(capacities, (dialog, which) -> {
+
+                                    int selectedCapacity =
+                                            (which == 0) ? 59 : 79;
+
+                                    // 🔥 SAVE BOOKING IN SQLITE
+                                    db.insertTrip(
+                                            userEmail,
+                                            batteryPercentage,
+                                            selectedCapacity,
+                                            "Source",
+                                            marker.getTitle(),
+                                            "Charging Booked",
+                                            marker.getTitle(),
+                                            eta
+                                    );
+
+                                    Toast.makeText(this,
+                                            "Charging Station Booked ✅",
+                                            Toast.LENGTH_LONG).show();
+                                })
+                                .show();
+                    })
+
                     .setNegativeButton("Cancel", null)
                     .show();
 
             return true;
         });
     }
+
 }
